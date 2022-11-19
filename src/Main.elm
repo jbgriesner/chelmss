@@ -6,84 +6,51 @@ module Main exposing (..)
 --
 
 import Browser
-import Html exposing (Html, text, pre)
-import Http
+import Html exposing (Html, Attribute, div, input, text)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput)
+import Html exposing (a)
+import Html exposing (b)
 
+main = Browser.sandbox {init = init, update = update, view = view}
 
+type alias Model = {content: String}
 
--- MAIN
+init : Model
+init = {content = ""}
 
+type Msg = Change String
 
-main =
-  Browser.element
-    { init = init
-    , update = update
-    , subscriptions = subscriptions
-    , view = view
-    }
-
-
-
--- MODEL
-
-
-type Model
-  = Failure
-  | Loading
-  | Success String
-
-
-init : () -> (Model, Cmd Msg)
-init _ =
-  ( Loading
-  , Http.get
-      { url = "https://elm-lang.org/assets/public-opinion.txt"
-      , expect = Http.expectString GotText
-      }
-  )
-
-
-
--- UPDATE
-
-
-type Msg
-  = GotText (Result Http.Error String)
-
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Msg -> Model -> Model
+update msg model = 
   case msg of
-    GotText result ->
-      case result of
-        Ok fullText ->
-          (Success fullText, Cmd.none)
-
-        Err _ ->
-          (Failure, Cmd.none)
-
-
-
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-  Sub.none
-
-
-
--- VIEW
-
+    Change newContent -> {model | content = newContent}
 
 view : Model -> Html Msg
-view model =
-  case model of
-    Failure ->
-      text "I was unable to load your book."
+view model = div [] 
+  [ input [placeholder "Text to reverse", value model.content, onInput Change] [], 
+    div [] [text (String.reverse model.content)]
+  ]
 
-    Loading ->
-      text "Loading..."
+type M a = T (a,a,a) | L (List a) | No
 
-    Success fullText ->
-      pre [] [ text fullText ]
+unlist : M a -> List a
+unlist x = case x of
+    L l -> l
+    _ -> []
+
+bind : M c -> (c -> M b) -> M b
+bind u v = case u of
+    No -> No
+    T (h, i, j) -> case (v h, v i, v j) of
+                    (T ((h1, h2, h3)), T ((i1, i2, i3)), T ((j1, j2, j3))) -> T (h1, i2, j3)
+                    _ -> No
+    L las -> let r = List.map v las 
+                        |> List.map unlist |> List.concat 
+             in L r
+z = T (1, 2, 3)
+y = L [1, 2, 3, 4]
+q = No
+
+uu : Int -> M Int
+uu x = L [x]
